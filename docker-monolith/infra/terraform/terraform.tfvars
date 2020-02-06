@@ -1,0 +1,5 @@
+project          = "docker-266911"
+public_key_path  = "~/.ssh/appuser.pub"
+docker_disk_image       = "ubuntu-1604-lts"
+private_key_path = "~/.ssh/appuser"
+machine_type     = "g1-small"

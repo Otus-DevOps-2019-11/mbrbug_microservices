@@ -1,0 +1,10 @@
+---
+- name: Deploy App
+  hosts: all
+  become: true
+  tasks:
+   - name: Fetch the latest version of application code
+     docker_container:
+      name: otus-reddit
+      image: andrewmbr/otus-reddit:1.0
+      network_mode: host
