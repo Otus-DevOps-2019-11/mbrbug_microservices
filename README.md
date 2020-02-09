@@ -1,7 +1,16 @@
 # mbrbug_microservices
 mbrbug microservices repository
 
+### №17 Docker: сети, docker-compose
+Базовое имя проекта задается именем папки. Возможно переопределить ключем
+-p, --project-name NAME     Specify an alternate project name
+                              (default: directory name)
+
+
 ### №16 Docker-образы. Микросервисы
+
+<details>
+  <summary>Docker-образы. Микросервисы</summary>
 
 Разбиение приложения на 4 компонента: post, comment, ui и БД Mongo
 Для каждого компонента создан Docker образ и Dockerfile
@@ -56,8 +65,13 @@ docker run -d --network=reddit -p 9292:9292 --env POST_SERVICE_HOST=post_al --en
 docker run -d --network=reddit --network-alias=post_db \
 --network-alias=comment_db -v reddit_db:/data/db mongo:latest
 ```
+</details>
 
 ### №15 Технология контейнеризации. Введение в Docker
+
+<details>
+  <summary>Технология контейнеризации. Введение в Docker</summary>
+
 ##### docker, docker-machine, docker-compose docker
 run, info, diff, ps, image, images, start, attach, stop, exec, create, commit kill, system df, rm, rmi, inspect `docker rm $(docker ps -a -q)`
 
@@ -85,3 +99,4 @@ CMD ["/start.sh"]
 ```
 `docker build -t reddit:latest .`
 `docker tag reddit:latest <your-login>/otus-reddit:1.0`
+</details>
