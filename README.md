@@ -3,9 +3,75 @@ mbrbug microservices repository
 
 ### №17 Docker: сети, docker-compose
 Базовое имя проекта задается именем папки. Возможно переопределить ключем
+```
 -p, --project-name NAME     Specify an alternate project name
                               (default: directory name)
+```
+##### Сети в Docker
+- none (только loopback)
+- host (доступ к собственному пространству хоста)
+- bridge (у контейнеров, которые используют одинаковую сеть, есть своя собственная подсеть, и они могут передавать данные друг другу по умолчанию)
 
+```
+--name <name> (можно задать только 1 имя)
+--network-alias <alias-name> (можно задать множество алиасов)
+```
+по алиасу можно обращаться к контейнеру
+
+`docker network connect <network> <container>`
+подключение контейнера к сети
+
+##### Docker-compose
+
+docker-compose.yml
+```
+version: '3.3'
+services:
+  post_db:
+    image: mongo:3.2
+    volumes:
+      - post_db:/data/db
+    networks:
+      - reddit
+  ui:
+    build: ./ui
+    image: ${USERNAME}/ui:1.0
+    ports:
+      - 9292:9292/tcp
+    networks:
+      - reddit
+  post:
+    build: ./post-py
+    image: ${USERNAME}/post:1.0
+    networks:
+      - reddit
+  comment:
+    build: ./comment
+    image: ${USERNAME}/comment:1.0
+    networks:
+      - reddit
+
+volumes:
+  post_db:
+
+networks:
+  reddit:
+```
+несколько сетей
+```
+networks:
+  - front_net
+  - back_net
+```
+
+##### docker-compose.override.yml
+Файл для переопределения существующих сервисов или определения новых
+```
+services:
+ ui:
+   command: puma --debug -w 2
+```
+переоределяем параметры запуска приложения в контейнере ui
 
 ### №16 Docker-образы. Микросервисы
 
