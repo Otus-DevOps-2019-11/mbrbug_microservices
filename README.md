@@ -1,7 +1,82 @@
 # mbrbug_microservices
 mbrbug microservices repository
 
+### №17 Docker: сети, docker-compose
+Базовое имя проекта задается именем папки. Возможно переопределить ключем
+```
+-p, --project-name NAME     Specify an alternate project name
+                              (default: directory name)
+```
+##### Сети в Docker
+- none (только loopback)
+- host (доступ к собственному пространству хоста)
+- bridge (у контейнеров, которые используют одинаковую сеть, есть своя собственная подсеть, и они могут передавать данные друг другу по умолчанию)
+
+```
+--name <name> (можно задать только 1 имя)
+--network-alias <alias-name> (можно задать множество алиасов)
+```
+по алиасу можно обращаться к контейнеру
+
+`docker network connect <network> <container>`
+подключение контейнера к сети
+
+##### Docker-compose
+
+docker-compose.yml
+```
+version: '3.3'
+services:
+  post_db:
+    image: mongo:3.2
+    volumes:
+      - post_db:/data/db
+    networks:
+      - reddit
+  ui:
+    build: ./ui
+    image: ${USERNAME}/ui:1.0
+    ports:
+      - 9292:9292/tcp
+    networks:
+      - reddit
+  post:
+    build: ./post-py
+    image: ${USERNAME}/post:1.0
+    networks:
+      - reddit
+  comment:
+    build: ./comment
+    image: ${USERNAME}/comment:1.0
+    networks:
+      - reddit
+
+volumes:
+  post_db:
+
+networks:
+  reddit:
+```
+несколько сетей
+```
+networks:
+  - front_net
+  - back_net
+```
+
+##### docker-compose.override.yml
+Файл для переопределения существующих сервисов или определения новых
+```
+services:
+ ui:
+   command: puma --debug -w 2
+```
+переоределяем параметры запуска приложения в контейнере ui
+
 ### №16 Docker-образы. Микросервисы
+
+<details>
+  <summary>Docker-образы. Микросервисы</summary>
 
 Разбиение приложения на 4 компонента: post, comment, ui и БД Mongo
 Для каждого компонента создан Docker образ и Dockerfile
@@ -56,8 +131,13 @@ docker run -d --network=reddit -p 9292:9292 --env POST_SERVICE_HOST=post_al --en
 docker run -d --network=reddit --network-alias=post_db \
 --network-alias=comment_db -v reddit_db:/data/db mongo:latest
 ```
+</details>
 
 ### №15 Технология контейнеризации. Введение в Docker
+
+<details>
+  <summary>Технология контейнеризации. Введение в Docker</summary>
+
 ##### docker, docker-machine, docker-compose docker
 run, info, diff, ps, image, images, start, attach, stop, exec, create, commit kill, system df, rm, rmi, inspect `docker rm $(docker ps -a -q)`
 
@@ -85,3 +165,4 @@ CMD ["/start.sh"]
 ```
 `docker build -t reddit:latest .`
 `docker tag reddit:latest <your-login>/otus-reddit:1.0`
+</details>
