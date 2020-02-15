@@ -9,7 +9,7 @@ variables:
 
 before_script:
  - cd reddit
-# - gem install bundler -v "=1.16"
+ - gem install bundler -v "=1.16"
  - bundle install
 # - bundle update --bundler
 
