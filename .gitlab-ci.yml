@@ -1,9 +1,8 @@
-image: ruby:2.4.2
-
+image: ruby
 stages:
   - build
   - test
-B  - deploy
+  - deploy
 
 variables:
  DATABASE_URL: 'mongodb://mongo/user_posts'
