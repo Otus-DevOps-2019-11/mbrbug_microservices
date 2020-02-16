@@ -10,7 +10,7 @@ variables:
  DATABASE_URL: 'mongodb://mongo/user_posts'
 
 services:
- - docker:19.03-dind
+ - docker:19.03.1-dind
 
 before_script:
  - cd reddit
