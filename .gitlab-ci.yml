@@ -9,6 +9,9 @@ stages:
 variables:
  DATABASE_URL: 'mongodb://mongo/user_posts'
 
+services:
+ - docker:19.03-dind
+
 before_script:
  - cd reddit
  - gem install bundler -v "=1.16"
@@ -19,7 +22,7 @@ before_script:
 build_job:
   stage: build
   services:
-  - docker:19.03.1-dind
+  - docker:docker:18.09-dind
   script:
     - echo 'Building'
     - cd ../docker-monolith
