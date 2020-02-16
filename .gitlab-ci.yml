@@ -22,7 +22,7 @@ before_script:
 build_job:
   stage: build
   services:
-  - docker:docker:18.09-dind
+  - docker:docker:19.03.1-dind
   script:
     - echo 'Building'
     - cd ../docker-monolith
