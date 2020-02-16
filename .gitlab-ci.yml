@@ -13,15 +13,19 @@ before_script:
  - cd reddit
  - gem install bundler -v "=1.16"
  - bundle install
+ - docker info
 # - bundle update --bundler
 
 build_job:
   stage: build
+  services:
+  - docker:19.03.1-dind
   script:
     - echo 'Building'
     - cd ../docker-monolith
-    - apt update
-    - apt-cache search docker | grep docker
+    - docker info
+#    - apt update
+#    - apt-cache search docker | grep docker
 #    - apt install docker-ce
 #    - docker build -t reddit:latest .
 
