@@ -20,7 +20,7 @@ build_job:
   script:
     - echo 'Building'
     - cd ../docker-monolith
-    - apt install docker
+    - apt install docker-ce
     - docker build -t reddit:latest .
 
 test_unit_job:
