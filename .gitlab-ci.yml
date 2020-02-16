@@ -21,6 +21,7 @@ before_script:
 
 build_job:
   stage: build
+  image: docker:19.03.1-dind
   services:
   - docker:docker:19.03.1-dind
   script:
