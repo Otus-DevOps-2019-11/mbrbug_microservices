@@ -17,6 +17,7 @@ before_script:
 # - bundle update --bundler
 
 build_job:
+  image: docker:19.03.1-dind
   stage: build
   script:
     - echo 'Building'
