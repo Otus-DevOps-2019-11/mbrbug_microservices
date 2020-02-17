@@ -10,8 +10,8 @@ variables:
  DATABASE_URL: 'mongodb://mongo/user_posts'
 
 before_script:
- - docker info
- - docker login -u andrewmbr -p 3hf4IK9zS1QU
+# - docker info
+# - docker login -u andrewmbr -p 3hf4IK9zS1QU
 # - cd reddit
 # - gem install bundler -v "=1.16"
 # - bundle install
@@ -25,6 +25,7 @@ build_job:
     - echo 'Building'
 #    - docker-monolith
     - docker info
+    - docker login -u andrewmbr -p 3hf4IK9zS1QU
 #    - apt update
 #    - apt-cache search docker | grep docker
 #    - apt install docker-ce
