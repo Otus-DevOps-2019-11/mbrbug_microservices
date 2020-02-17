@@ -42,6 +42,8 @@ test_unit_job:
  - mongo:latest
  script:
  - cd reddit
+ - gem install bundler -v "=1.16"
+ - bundle install
  - ruby simpletest.rb
 # - echo 'test_unit_job'
 
