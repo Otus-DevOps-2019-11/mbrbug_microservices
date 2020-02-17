@@ -18,7 +18,6 @@ before_script:
 
 build_job:
   stage: build
-  image: docker:19.03.1-dind
   script:
     - echo 'Building'
     - cd ../docker-monolith
@@ -27,6 +26,8 @@ build_job:
 #    - apt-cache search docker | grep docker
 #    - apt install docker-ce
 #    - docker build -t reddit:latest .
+   tags:
+    - dockerdind
 
 test_unit_job:
  stage: test
