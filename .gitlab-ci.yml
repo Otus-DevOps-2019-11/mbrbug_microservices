@@ -41,7 +41,7 @@ test_unit_job:
  services:
  - mongo:latest
  script:
- - cd ../reddit
+ - cd reddit
  - ruby simpletest.rb
 # - echo 'test_unit_job'
 
