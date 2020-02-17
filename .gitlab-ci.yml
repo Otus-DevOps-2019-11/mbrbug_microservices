@@ -22,7 +22,7 @@ build_job:
   stage: build
   script:
     - echo 'Building'
-    - docker-monolith
+#    - docker-monolith
     - docker info
 #    - apt update
 #    - apt-cache search docker | grep docker
