@@ -27,6 +27,7 @@ build_job:
 #    - apt update
 #    - apt-cache search docker | grep docker
 #    - apt install docker-ce
+    - cd docker-monolith
     - docker build -t reddit:latest .
   tags:
    - dockerdind
