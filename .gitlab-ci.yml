@@ -26,8 +26,8 @@ build_job:
 #    - apt-cache search docker | grep docker
 #    - apt install docker-ce
 #    - docker build -t reddit:latest .
-   tags:
-    - dockerdind
+  tags:
+   - dockerdind
 
 test_unit_job:
  stage: test
