@@ -48,9 +48,19 @@ test_unit_job:
 # - echo 'test_unit_job'
 
 deploy_dev_job:
+ image: docker:17.09.0-ce
+ variables:
+  DOCKER_HOST: tcp://35.193.74.71:2376
+  DOCKER_TLS_VERIFY: 1
+  DOCKER_CERT_PATH: "/certs"
  stage: review
  script:
-  - echo 'Deploy'
+  - echo 'Deploy review'
+  - mkdir -p $DOCKER_CERT_PATH
+  - echo "$ca_pem" > $DOCKER_CERT_PATH/ca.pem
+  - echo "$cert_pem" > $DOCKER_CERT_PATH/cert.pem
+  - echo "$key_pem" > $DOCKER_CERT_PATH/key.pem
+  - docker run -it andrewmbr/otus-reddit:3.0
  environment:
   name: dev
   url: http://dev.example.com
