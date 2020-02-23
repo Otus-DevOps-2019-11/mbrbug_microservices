@@ -30,9 +30,9 @@ build_job:
 #    - apt-cache search docker | grep docker
 #    - apt install docker-ce
     - cd docker-monolith
-    - docker build -t reddit:latest .
-    - docker tag reddit:latest andrewmbr/otus-reddit:3.0
-    - docker push andrewmbr/otus-reddit:3.0
+##    - docker build -t reddit:latest .
+##    - docker tag reddit:latest andrewmbr/otus-reddit:3.0
+##    - docker push andrewmbr/otus-reddit:3.0
   tags:
    - dockerdind
 
@@ -42,9 +42,9 @@ test_unit_job:
  - mongo:latest
  script:
  - cd reddit
- - gem install bundler -v "=1.16"
- - bundle install
- - ruby simpletest.rb
+ #- gem install bundler -v "=1.16"
+ #- bundle install
+ #- ruby simpletest.rb
 # - echo 'test_unit_job'
 
 deploy_dev_job:
@@ -60,7 +60,7 @@ deploy_dev_job:
   - echo "$ca_pem" > $DOCKER_CERT_PATH/ca.pem
   - echo "$cert_pem" > $DOCKER_CERT_PATH/cert.pem
   - echo "$key_pem" > $DOCKER_CERT_PATH/key.pem
-  - docker run -it andrewmbr/otus-reddit:3.0
+  - docker run -d andrewmbr/otus-reddit:3.0
  environment:
   name: dev
   url: http://dev.example.com
