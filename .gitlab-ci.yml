@@ -44,7 +44,7 @@ test_unit_job:
  - cd reddit
  #- gem install bundler -v "=1.16"
  #- bundle install
- #- ruby simpletest.rb
+B #- ruby simpletest.rb
 # - echo 'test_unit_job'
 
 deploy_dev_job:
@@ -60,7 +60,7 @@ deploy_dev_job:
   - echo "$ca_pem" > $DOCKER_CERT_PATH/ca.pem
   - echo "$cert_pem" > $DOCKER_CERT_PATH/cert.pem
   - echo "$key_pem" > $DOCKER_CERT_PATH/key.pem
-  - docker stop reddit && docker rm reddit
+ # - docker stop reddit && docker rm reddit
   - docker run -d --net=host andrewmbr/otus-reddit:3.0 reddit
  environment:
   name: dev
