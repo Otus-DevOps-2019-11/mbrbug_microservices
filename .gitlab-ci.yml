@@ -60,8 +60,8 @@ deploy_dev_job:
   - echo "$ca_pem" > $DOCKER_CERT_PATH/ca.pem
   - echo "$cert_pem" > $DOCKER_CERT_PATH/cert.pem
   - echo "$key_pem" > $DOCKER_CERT_PATH/key.pem
- # - docker stop reddit && docker rm reddit
-  - docker run -d --net=host andrewmbr/otus-reddit:3.0 reddit
+  - docker stop reddit && docker rm reddit
+  - docker run -d --net=host --name reddit andrewmbr/otus-reddit:3.0
  environment:
   name: dev
   url: http://dev.example.com
