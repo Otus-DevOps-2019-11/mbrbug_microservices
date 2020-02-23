@@ -44,7 +44,7 @@ test_unit_job:
  - cd reddit
  #- gem install bundler -v "=1.16"
  #- bundle install
-B #- ruby simpletest.rb
+ #- ruby simpletest.rb
 # - echo 'test_unit_job'
 
 deploy_dev_job:
