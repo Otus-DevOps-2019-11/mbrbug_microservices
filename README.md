@@ -1,6 +1,55 @@
-# mbrbug_microservices
+M# mbrbug_microservices
 mbrbug microservices repository
 
+### №18
+
+Gitlab CI Omnibus
+```
+web:
+  image: 'gitlab/gitlab-ce:latest'
+  restart: always
+  hostname: 'gitlab.example.com'
+  environment:
+    GITLAB_OMNIBUS_CONFIG: |
+      external_url 'http://35.205.115.90/'
+      # Add any other gitlab.rb configuration here, each on its own line
+  ports:
+    - '80:80'
+    - '443:443'
+    - '22:22'
+  volumes:
+    - '/srv/gitlab/config:/etc/gitlab'
+    - '/srv/gitlab/logs:/var/log/gitlab'
+    - '/srv/gitlab/data:/var/opt/gitlab'
+```
+Регистация первого пользователя, создание проекта
+добавление еще одного удаленного репо и push в него  
+`git remote add gitlab http://<your-vm-ip>/homework/example.git`
+`git push gitlab gitlab-ci-1`
+
+создание файла .gitlab-ci.yml  
+создание runner
+```docker run -d --name gitlab-runner --restart always \
+-v /srv/gitlab-runner/config:/etc/gitlab-runner \
+-v /var/run/docker.sock:/var/run/docker.sock \
+gitlab/gitlab-runner:latest
+```
+```
+ docker exec -it gitlab-runner gitlab-runner register --run-untagged --locked=false
+```
+
+Директива only описывает список условий, которые должны быть
+истинны, чтобы job мог запуститься.
+Регулярное выражение слева означает, что должен стоять
+semver тэг в git, например, 2.4.10
+
+```only:
+ - /^\d+\.\d+\.\d+/
+```
+```
+git tag 2.4.10
+git push gitlab gitlab-ci-1 --tags
+```
 ### №17 Docker: сети, docker-compose
 Базовое имя проекта задается именем папки. Возможно переопределить ключем
 ```
