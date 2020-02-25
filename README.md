@@ -1,7 +1,7 @@
 M# mbrbug_microservices
 mbrbug microservices repository
 
-### №18
+### №19
 
 Gitlab CI Omnibus
 ```
@@ -51,6 +51,8 @@ git tag 2.4.10
 git push gitlab gitlab-ci-1 --tags
 ```
 ### №17 Docker: сети, docker-compose
+<details>
+  <summary>Docker: сети, docker-compose</summary>
 Базовое имя проекта задается именем папки. Возможно переопределить ключем
 ```
 -p, --project-name NAME     Specify an alternate project name
@@ -121,6 +123,7 @@ services:
    command: puma --debug -w 2
 ```
 переоределяем параметры запуска приложения в контейнере ui
+</details>
 
 ### №16 Docker-образы. Микросервисы
 
