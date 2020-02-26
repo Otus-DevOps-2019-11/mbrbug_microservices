@@ -1,0 +1,89 @@
+image: ruby:2.4.2
+stages:
+  - build
+  - test
+  - review
+  - stage
+  - production
+
+variables:
+ DATABASE_URL: 'mongodb://mongo/user_posts'
+
+before_script:
+# - docker info
+# - docker login -u andrewmbr -p 3hf4IK9zS1QU
+# - cd reddit
+# - gem install bundler -v "=1.16"
+# - bundle install
+# - docker info
+# - bundle update --bundler
+
+build_job:
+  image: docker:19.03.1-dind
+  stage: build
+  script:
+    - echo 'Building'
+#    - docker-monolith
+    - docker info
+    - docker login -u andrewmbr -p 3hf4IK9zS1QU
+#    - apt update
+#    - apt-cache search docker | grep docker
+#    - apt install docker-ce
+    - cd docker-monolith
+    - docker build -t reddit:latest .
+    - docker tag reddit:latest andrewmbr/otus-reddit:3.0
+    - docker push andrewmbr/otus-reddit:3.0
+  tags:
+   - dockerdind
+
+test_unit_job:
+ stage: test
+ services:
+ - mongo:latest
+ script:
+ - cd reddit
+ #- gem install bundler -v "=1.16"
+ #- bundle install
+ #- ruby simpletest.rb
+# - echo 'test_unit_job'
+
+deploy_dev_job:
+ image: docker:17.09.0-ce
+ variables:
+  DOCKER_HOST: tcp://35.193.74.71:2376
+  DOCKER_TLS_VERIFY: 1
+  DOCKER_CERT_PATH: "/certs"
+ stage: review
+ script:
+  - echo 'Deploy review'
+  - mkdir -p $DOCKER_CERT_PATH
+  - echo "$ca_pem" > $DOCKER_CERT_PATH/ca.pem
+  - echo "$cert_pem" > $DOCKER_CERT_PATH/cert.pem
+  - echo "$key_pem" > $DOCKER_CERT_PATH/key.pem
+  - docker stop reddit && docker rm reddit
+  - docker run -d --net=host --name reddit andrewmbr/otus-reddit:3.0
+ environment:
+  name: dev
+  url: http://dev.example.com
+
+staging:
+ stage: stage
+ when: manual
+ only:
+  - /^\d+\.\d+\.\d+/
+ script:
+  - echo 'Deploy'
+ environment:
+  name: stage
+  url: https://beta.example.com
+
+production:
+ stage: production
+ when: manual
+ only:
+  - /^\d+\.\d+\.\d+/
+ script:
+  - echo 'Deploy'
+ environment:
+  name: production
+  url: https://example.com
