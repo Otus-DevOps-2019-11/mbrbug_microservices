@@ -1,7 +1,233 @@
 M# mbrbug_microservices
 mbrbug microservices repository
 
+### №20 Введение в мониторинг. Системы мониторинга.
+Запуск prometheus
+```
+docker run --rm -p 9090:9090 -d --name prometheus prom/prometheus:v2.1.0
+```
+
+Targets (цели) - представляют собой системы или процессы, за которыми следит Prometheus  
+
+конфиг файл Prometheus
+```
+---
+global:
+  scrape_interval: '5s'
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets:
+        - 'localhost:9090'
+
+  - job_name: 'ui'
+    static_configs:
+      - targets:
+        - 'ui:9292'
+
+  - job_name: 'comment'
+    static_configs:
+      - targets:
+        - 'comment:9292'
+
+  - job_name: 'node'
+    static_configs:
+     - targets:
+       - 'node-exporter:9100'
+
+  - job_name: 'mongodb'
+    static_configs:
+     - targets:
+       - 'mongodb-exporter:9216'
+
+  - job_name: 'cloudprober'
+    scrape_interval: 10s
+    static_configs:
+     - targets:
+       - 'cloudprober-exporter:9313'
+```
+Создаем "свой" Prometheus
+```
+FROM prom/prometheus:v2.1.0
+ADD prometheus.yml /etc/prometheus/
+```
+prometheus в docker-compose
+```
+services:
+...
+  prometheus:
+    image: ${USERNAME}/prometheus
+    ports:
+      - '9090:9090'
+    volumes:
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention=1d'
+
+volumes:
+  prometheus_data:
+```  
+##### Сбор метрик хоста  
+###### Node exporter
+образ docker
+```
+node-exporter:
+ image: prom/node-exporter:v0.15.2
+ user: root
+ volumes:
+ - /proc:/host/proc:ro
+ - /sys:/host/sys:ro
+ - /:/rootfs:ro
+ command:
+ - '--path.procfs=/host/proc'
+ - '--path.sysfs=/host/sys'
+ - '--collector.filesystem.ignored-mount-points="^/(sys|proc|dev|host|etc)($$|/)"'
+```  
+в конфиг самого prometheus
+```
+scrape_configs:
+...
+ - job_name: 'node'
+ static_configs:
+ - targets:
+ - 'node-exporter:9100'
+```  
+##### mongodb_exporter
+в конфиг docker-compose
+```
+mongodb-exporter:
+    image: bitnami/mongodb-exporter:${MONGO_EXP_VER}
+    networks:
+      - prometheus_net
+      - back_net
+    environment:
+      MONGODB_URI: "mongodb://post_db:27017"
+```  
+в конфиг самого prometheus  
+```
+- job_name: 'mongodb'
+  static_configs:
+   - targets:
+     - 'mongodb-exporter:9216'
+```  
+
+##### cloudprober
+###### Dockerfile
+```
+FROM cloudprober/cloudprober
+
+COPY cloudprober.cfg /etc/cloudprober.cfg
+
+ENTRYPOINT ["/cloudprober", "--logtostderr"]
+```    
+###### /etc/cloudprober.cfg конфиг в образе
+```
+probe {
+  name: "google_homepage"
+  type: HTTP
+  targets {
+    host_names: "www.google.com"
+  }
+  interval_msec: 5000  # 5s
+  timeout_msec: 1000   # 1s
+}
+
+probe {
+    name: "ui_page"
+    type: HTTP
+    targets {
+        host_names: "35.205.115.90"
+    }
+    http_probe {
+      protocol: HTTP
+      port: 9292
+    }
+    interval_msec: 5000    # Probe every 5s
+    }
+
+probe {
+    name: "comment"
+    type: HTTP
+    targets {
+        host_names: "comment"
+    }
+    http_probe {
+      protocol: HTTP
+      port: 9292
+    }
+    interval_msec: 5000    # Probe every 5s
+    }
+```  
+###### docker-compose
+```
+cloudprober-exporter:
+  image: ${USERNAME1}/cloudprober
+  networks:
+    - prometheus_net
+    - back_net
+    - front_net
+```  
+###### prometheus.yml
+```
+cloudprober-exporter:
+  image: ${USERNAME1}/cloudprober
+  networks:
+    - prometheus_net
+    - back_net
+    - front_net
+```  
+##### Makefile
+```
+.DEFAULT_GOAL := help
+
+REGISTRY = andrewmbr
+
+help:
+        echo Build docker images and pushing them to hub. Example: make 'docker-all'
+
+docker-all: docker-ui docker-comment docker-post docker-prometheus docker-cloudprober docker-all-push
+
+docker-ui:
+        cd ../src/ui && docker build -t ${REGISTRY}/ui .
+
+docker-comment:
+        cd ../src/comment && docker build -t ${REGISTRY}/comment .
+
+docker-post:
+        cd ../src/post-py && docker build -t ${REGISTRY}/post .
+
+docker-cloudprober:
+        cd ../monitoring/cloudprober && docker build -t ${REGISTRY}/cloudprober .
+
+docker-mongodb-exporter:
+        cd ../monitoring/mongodb-exporter && docker build -t ${REGISTRY}/mongodb-exporter .
+
+docker-prometheus:
+        cd ../monitoring/prometheus && docker build -t ${REGISTRY}/prometheus .
+
+docker-all-push: docker-ui-push docker-comment-push docker-post-push docker-cloudprober-push docker-prometheus-push
+
+docker-ui-push:
+        docker push andrewmbr/ui:latest
+
+docker-comment-push:
+        docker push andrewmbr/comment:latest
+
+docker-post-push:
+        docker push andrewmbr/post:latest
+
+docker-cloudprober-push:
+        docker push andrewmbr/cloudprober:latest
+
+docker-prometheus-push:
+        docker push andrewmbr/ui:latest
+```  
 ### №19
+<details>
+  <summary>Gitlab CI</summary>
 
 Gitlab CI Omnibus
 ```
@@ -50,6 +276,8 @@ semver тэг в git, например, 2.4.10
 git tag 2.4.10
 git push gitlab gitlab-ci-1 --tags
 ```
+</details>
+
 ### №17 Docker: сети, docker-compose
 <details>
   <summary>Docker: сети, docker-compose</summary>

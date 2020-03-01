@@ -62,7 +62,7 @@ services:
       - prometheus_net
 
   mongodb-exporter:
-    image: bitnami/mongodb-exporter:latest
+    image: bitnami/mongodb-exporter:${MONGO_EXP_VER}
     networks:
       - prometheus_net
       - back_net
@@ -71,11 +71,6 @@ services:
 
   cloudprober-exporter:
     image: ${USERNAME1}/cloudprober
-#    volumes:
-#      - ${PWD}/cloudprober/cloudprober.cfg:/etc/cloudprober.cfg
-#      - /home/locladmn/mbrbug_microservices/docker/cloudprober/cloudprober.cfg:/etc/cloudprober.cfg
-#    volumes:
-#      - $PWD/cloudprober.cfg:/etc/cloudprober.cfg
     networks:
       - prometheus_net
       - back_net
