@@ -17,18 +17,21 @@ services:
       - ${PORT}:${PORT}/tcp
     networks:
       - front_net
+      - prometheus_net
 
   post:
     image: ${USERNAME1}/post:${POST_VER}
     networks:
       - front_net
       - back_net
+      - prometheus_net
 
   comment:
     image: ${USERNAME1}/comment:${COMMENT_VER}
     networks:
       - front_net
       - back_net
+      - prometheus_net
 
   prometheus:
     image: ${USERNAME1}/prometheus
@@ -41,13 +44,49 @@ services:
       - '--storage.tsdb.path=/prometheus'
       - '--storage.tsdb.retention=1d'
     networks:
-      - front_net
+      - prometheus_net
       - back_net
+
+  node-exporter:
+    image: prom/node-exporter:v0.15.2
+    user: root
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points="^/(sys|proc|dev|host|etc)($$|/)"'
+    networks:
+      - prometheus_net
+
+  mongodb-exporter:
+    image: bitnami/mongodb-exporter:latest
+    networks:
+      - prometheus_net
+      - back_net
+    environment:
+      MONGODB_URI: "mongodb://post_db:27017"
+
+  cloudprober-exporter:
+    image: ${USERNAME1}/cloudprober
+#    volumes:
+#      - ${PWD}/cloudprober/cloudprober.cfg:/etc/cloudprober.cfg
+#      - /home/locladmn/mbrbug_microservices/docker/cloudprober/cloudprober.cfg:/etc/cloudprober.cfg
+#    volumes:
+#      - $PWD/cloudprober.cfg:/etc/cloudprober.cfg
+    networks:
+      - prometheus_net
+      - back_net
+      - front_net
 
 volumes:
   post_db:
   prometheus_data:
+#  /etc/cloudprober.cfg:
 
 networks:
   back_net:
   front_net:
+  prometheus_net:
