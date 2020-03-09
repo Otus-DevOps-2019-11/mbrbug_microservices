@@ -1,0 +1,15 @@
+---
+- name: Configure App
+  hosts: all
+  become: true
+  tasks:
+
+  - name: Install docker
+    apt:
+     name: docker.io
+     state: present
+
+  - name: Install python-docker
+    apt:
+     name: python-docker
+     state: present

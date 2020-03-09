@@ -1,0 +1,31 @@
+{
+    "variables": {
+            "machine_type": "f1-micro"
+  },
+
+    "builders": [
+        {
+            "type": "googlecompute",
+            "project_id": "docker-266911",
+            "image_name": "reddit-docker-{{timestamp}}",
+            "image_family": "reddit-docker",
+            "source_image_family": "ubuntu-1604-lts",
+            "zone": "europe-west1-b",
+            "ssh_username": "appuser",
+            "machine_type": "{{ user `machine_type` }}",
+            "disk_size": "10",
+            "disk_type": "pd-standard",
+            "image_description": "reddit docker template",
+            "network": "default",
+            "tags": "networktagstest"
+        }
+    ],
+    "provisioners": [
+     {
+      "type": "shell",
+      "inline": [
+         "sudo apt-get update && sudo apt-get -y install docker.io"
+        ]
+      }
+   ]
+}
