@@ -5,7 +5,7 @@ REGISTRY = andrewmbr
 help:
 	echo Build docker images and pushing them to hub. Example: make 'docker-all'
 
-docker-all: docker-ui docker-comment docker-post docker-prometheus docker-cloudprober docker-all-push
+docker-all: docker-ui docker-comment docker-post docker-prometheus docker-cloudprober docker-alertmanager docker-all-push
 
 docker-ui:
 	cd ../src/ui && docker build -t ${REGISTRY}/ui .
@@ -25,6 +25,9 @@ docker-mongodb-exporter:
 docker-prometheus:
 	cd ../monitoring/prometheus && docker build -t ${REGISTRY}/prometheus .
 
+docker-alertmanger:
+        cd ../monitoring/alertmanger && docker build -t ${REGISTRY}/alertmanger .
+
 docker-all-push: docker-ui-push docker-comment-push docker-post-push docker-cloudprober-push docker-prometheus-push
 
 docker-ui-push:
@@ -41,3 +44,6 @@ docker-cloudprober-push:
 
 docker-prometheus-push:
 	docker push andrewmbr/ui:latest
+
+docker-alertmanger-push:
+        docker push andrewmbr/alertmanger:latest
