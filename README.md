@@ -227,12 +227,12 @@ Targets (цели) - представляют собой системы или �
     static_configs:
      - targets:
        - 'cloudprober-exporter:9313'
-       ```
+```
        Создаем "свой" Prometheus
-       ```
-       FROM prom/prometheus:v2.1.0 ADD prometheus.yml /etc/prometheus/
-       ```
-       prometheus в docker-compose
+```
+FROM prom/prometheus:v2.1.0 ADD prometheus.yml /etc/prometheus/
+```
+prometheus в docker-compose
 ```
 services: ...
   prometheus:
@@ -245,10 +245,13 @@ services: ...
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
       - '--storage.tsdb.retention=1d' volumes:
-  prometheus_data: ```
+  prometheus_data: 
+```
 ##### Сбор метрик хоста
 ###### Node exporter
-образ docker ``` node-exporter:
+образ docker 
+``` 
+node-exporter:
  image: prom/node-exporter:v0.15.2
  user: root
  volumes:
@@ -258,27 +261,42 @@ services: ...
  command:
  - '--path.procfs=/host/proc'
  - '--path.sysfs=/host/sys'
- - '--collector.filesystem.ignored-mount-points="^/(sys|proc|dev|host|etc)($$|/)"' ``` в конфиг самого prometheus ``` scrape_configs: ...
+ - '--collector.filesystem.ignored-mount-points="^/(sys|proc|dev|host|etc)($$|/)"' 
+ ```
+ в конфиг самого prometheus 
+ ```
+ scrape_configs: ...
  - job_name: 'node'
  static_configs:
  - targets:
- - 'node-exporter:9100' ```
+ - 'node-exporter:9100' 
+ ```
 ##### mongodb_exporter
-в конфиг docker-compose ``` mongodb-exporter:
+в конфиг docker-compose 
+```
+mongodb-exporter:
     image: bitnami/mongodb-exporter:${MONGO_EXP_VER}
     networks:
       - prometheus_net
       - back_net
     environment:
-      MONGODB_URI: "mongodb://post_db:27017" ``` в конфиг самого prometheus ``` - job_name: 'mongodb'
+      MONGODB_URI: "mongodb://post_db:27017"
+``` 
+в конфиг самого prometheus 
+``` 
+- job_name: 'mongodb'
   static_configs:
    - targets:
-     - 'mongodb-exporter:9216' ```
+     - 'mongodb-exporter:9216'
+```
 ##### cloudprober
 ###### Dockerfile
-``` FROM cloudprober/cloudprober COPY cloudprober.cfg /etc/cloudprober.cfg ENTRYPOINT ["/cloudprober", "--logtostderr"] ```
+```
+FROM cloudprober/cloudprober COPY cloudprober.cfg /etc/cloudprober.cfg ENTRYPOINT ["/cloudprober", "--logtostderr"]
+```
 ###### /etc/cloudprober.cfg конфиг в образе
-``` probe {
+```
+probe {
   name: "google_homepage"
   type: HTTP
   targets {
@@ -313,21 +331,26 @@ probe {
     }
 ```
 ###### docker-compose
-``` cloudprober-exporter:
+```
+cloudprober-exporter:
   image: ${USERNAME1}/cloudprober
   networks:
     - prometheus_net
     - back_net
-    - front_net ```
+    - front_net
+```
 ###### prometheus.yml
-``` cloudprober-exporter:
+```
+cloudprober-exporter:
   image: ${USERNAME1}/cloudprober
   networks:
     - prometheus_net
     - back_net
-    - front_net ```
+    - front_net
+```
 ##### Makefile
-``` .DEFAULT_GOAL := help REGISTRY = andrewmbr help:
+```
+.DEFAULT_GOAL := help REGISTRY = andrewmbr help:
         echo Build docker images and pushing them to hub. Example: make 'docker-all' docker-all: docker-ui docker-comment docker-post docker-prometheus
 docker-cloudprober docker-all-push docker-ui:
         cd ../src/ui && docker build -t ${REGISTRY}/ui . docker-comment:
@@ -344,7 +367,8 @@ docker-cloudprober-push:
         docker push andrewmbr/cloudprober:latest
 
 docker-prometheus-push:
-        docker push andrewmbr/ui:latest ```
+        docker push andrewmbr/ui:latest
+```
 
 </details>
 
@@ -378,7 +402,8 @@ web:
 
 создание файла .gitlab-ci.yml
 создание runner
-```docker run -d --name gitlab-runner --restart always \
+```
+docker run -d --name gitlab-runner --restart always \
 -v /srv/gitlab-runner/config:/etc/gitlab-runner \
 -v /var/run/docker.sock:/var/run/docker.sock \
 gitlab/gitlab-runner:latest
@@ -392,7 +417,8 @@ gitlab/gitlab-runner:latest
 Регулярное выражение слева означает, что должен стоять
 semver тэг в git, например, 2.4.10
 
-```only:
+```
+only:
  - /^\d+\.\d+\.\d+/
 ```
 ```
