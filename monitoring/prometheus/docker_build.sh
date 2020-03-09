@@ -1,4 +1,4 @@
 #!/bin/bash
 
-docker build -t andrewmbr/prometheus .
-docker push andrewmbr/prometheus
+docker build -t  ${USERNAME1}/prometheus .
+docker push  ${USERNAME1}/prometheus

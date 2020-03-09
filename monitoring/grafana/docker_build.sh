@@ -1,4 +1,4 @@
 #!/bin/bash
 
-docker build -t andrewmbr/grafana .
-docker push andrewmbr/grafana
+docker build -t  ${USERNAME1}/grafana .
+docker push  ${USERNAME1}/grafana
