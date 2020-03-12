@@ -12,7 +12,7 @@ services:
           - comment_db
 
   ui:
-    image: ${USERNAME1}/ui:${UI_VER}
+    image: ${USER_NAME}/ui:${UI_VER}
     ports:
       - ${PORT}:${PORT}/tcp
     networks:
@@ -20,14 +20,15 @@ services:
       - prometheus_net
 
   post:
-    image: ${USERNAME1}/post:${POST_VER}
+    image: ${USER_NAME}/post:${POST_VER}
     networks:
       - front_net
       - back_net
       - prometheus_net
 
   comment:
-    image: ${USERNAME1}/comment:${COMMENT_VER}
+#    image: ${USER_NAME}/comment:${COMMENT_VER}
+    image: ${USER_NAME}/comment:1.0
     networks:
       - front_net
       - back_net
