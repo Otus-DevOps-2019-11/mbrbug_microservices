@@ -1,0 +1,128 @@
+version: '3.3'
+services:
+
+ prometheus:
+  image: ${USERNAME1}/prometheus
+  ports:
+    - '9090:9090'
+  volumes:
+    - prometheus_data:/prometheus
+  command:
+    - '--config.file=/etc/prometheus/prometheus.yml'
+    - '--storage.tsdb.path=/prometheus'
+    - '--storage.tsdb.retention=1d'
+  networks:
+    - prometheus_net
+    - back_net
+
+ node-exporter:
+  image: prom/node-exporter:v0.15.2
+  user: root
+  volumes:
+    - /proc:/host/proc:ro
+    - /sys:/host/sys:ro
+    - /:/rootfs:ro
+  command:
+    - '--path.procfs=/host/proc'
+    - '--path.sysfs=/host/sys'
+    - '--collector.filesystem.ignored-mount-points="^/(sys|proc|dev|host|etc)($$|/)"'
+  networks:
+    - prometheus_net
+
+ mongodb-exporter:
+  image: bitnami/mongodb-exporter:${MONGO_EXP_VER}
+  networks:
+    - prometheus_net
+    - back_net
+  environment:
+    MONGODB_URI: "mongodb://post_db:27017"
+
+ cloudprober-exporter:
+  image: ${USERNAME1}/cloudprober
+  networks:
+    - prometheus_net
+    - back_net
+    - front_net
+
+ cadvisor:
+  image: google/cadvisor:v0.29.0
+  volumes:
+    - '/:/rootfs:ro'
+    - '/var/run:/var/run:rw'
+    - '/sys:/sys:ro'
+    - '/var/lib/docker/:/var/lib/docker:ro'
+  ports:
+    - '8080:8080'
+  networks:
+    - prometheus_net
+
+ grafana:
+  image: andrewmbr/grafana
+  volumes:
+   - grafana_data:/var/lib/grafana
+  environment:
+   - GF_SECURITY_ADMIN_USER=admin
+   - GF_SECURITY_ADMIN_PASSWORD=secret
+  depends_on:
+   - prometheus
+  ports:
+   - 3000:3000
+  networks:
+   - prometheus_net
+
+ alertmanager:
+  image: ${USERNAME1}/alertmanager
+  command:
+   - '--config.file=/etc/alertmanager/config.yml'
+  ports:
+   - 9093:9093
+  networks:
+   - prometheus_net
+
+ telegraf:
+  image: ${USERNAME1}/telegraf
+  volumes:
+   - '/var/run/docker.sock:/var/run/docker.sock'
+  networks:
+   - prometheus_net
+
+ influxdb:
+  image: influxdb
+  volumes:
+   - 'influxdb_data:/var/lib/influxdb'
+  networks:
+   - prometheus_net
+
+ stackdriver-exporter:
+  image: andrewmbr/stackdriver
+  ports:
+   - 9255:9255
+  networks:
+   - prometheus_net
+  environment:
+   - GOOGLE_APPLICATION_CREDENTIALS=/opt/gcp-key/gcp-key.json
+   - STACKDRIVER_EXPORTER_GOOGLE_PROJECT_ID=docker-266911
+   - STACKDRIVER_EXPORTER_MONITORING_METRICS_TYPE_PREFIXES=compute.googleapis.com/instance/cpu,compute.googleapis.com/instance/disk
+
+ trickster:
+  image: tricksterio/trickster
+  networks:
+   - prometheus_net
+  environment:
+   - TRK_ORIGIN=http://prometheus:9090
+   - TRK_ORIGIN_TYPE=prometheus
+   - TRK_PROXY_PORT=8000
+   - TRK_METRICS_PORT=8001
+  ports:
+    - '8000:8000'
+    - '8001:8001'
+
+volumes:
+   prometheus_data:
+   grafana_data:
+   influxdb_data:
+
+networks:
+   back_net:
+   front_net:
+   prometheus_net:

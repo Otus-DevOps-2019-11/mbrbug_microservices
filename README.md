@@ -1,61 +1,240 @@
-M# mbrbug_microservices
+# mbrbug_microservices
 mbrbug microservices repository
 
+### №21 Мониторинг приложения и инфраструктуры
+
+Разворачиваем через docker-machine виртуалку
+
+##### cAdvisor
+cAdvisor собирает информацию о ресурсах потребляемых
+контейнерами и характеристиках их работы
+docker-compose
+```
+services:
+...
+cadvisor:
+image: google/cadvisor:v0.29.0
+volumes:
+- '/:/rootfs:ro'
+- '/var/run:/var/run:rw'
+- '/sys:/sys:ro'
+- '/var/lib/docker/:/var/lib/docker:ro'
+ports:
+- '8080:8080'
+```
+prometheus.yml
+```
+scrape_configs:
+...
+- job_name: 'cadvisor'
+static_configs:
+- targets:
+- 'cadvisor:8080'
+```
+и пересборка образа prometheus_net
+`docker build -t $USER_NAME/prometheus .`
+
+##### Grafana
+Визуализация метрик
+```
+services:
+...
+grafana:
+image: grafana/grafana:5.0.0
+volumes:
+- grafana_data:/var/lib/grafana
+environment:
+- GF_SECURITY_ADMIN_USER=admin
+- GF_SECURITY_ADMIN_PASSWORD=secret
+depends_on:
+- prometheus
+ports:
+- 3000:3000
+...
+volumes:
+grafana_data:
+```
+добавляем источники данных, дашборды
+сбор метрик
+rate()
+histogram_quantile()
+
+##### Alerting
+Alertmanager в Prometheus
+```
+FROM prom/alertmanager:v0.14.0
+ADD config.yml /etc/alertmanager/
+```
+config.yml
+```
+global:
+slack_api_url:
+'https://hooks.slack.com/services/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'
+#Заменяем на свои значения
+route:
+receiver: 'slack-notifications'
+receivers:
+- name: 'slack-notifications'
+slack_configs:
+- channel: '#userchannel' #Заменяем на свои значения
+```
+docker-compose
+```
+services:
+...
+alertmanager:
+image: ${USER_NAME}/alertmanager
+command:
+- '--config.file=/etc/alertmanager/config.yml'
+ports:
+- 9093:9093
+```
+##### alert rules
+monitoring/prometheus/alerts.yml
+```
+groups:
+- name: alert.rules
+rules:
+- alert: InstanceDown
+expr: up == 0 # любое PromQL выражение
+for: 1m # В течении какого времени, по умолчанию 0
+labels: # Дополнительные метки
+severity: page
+annotations:
+description: '{{ $labels.instance }} of job {{ $labels.job }} has been down for
+more than 1 minute'
+summary: 'Instance {{ $labels.instance }} down'
+```
+
+правила в настройках
+```
+rule_files:
+- "alerts.yml"
+alerting:
+alertmanagers:
+- scheme: http
+static_configs:
+- targets:
+- "alertmanager:9093"
+```
+##### Метрики через настройки Docker
+docker daemon.json
+```
+{
+  "metrics-addr" : "127.0.0.1:9323",
+  "experimental" : true
+}
+```
+prometheus job
+```
+- job_name: 'docker'
+    static_configs:
+      - targets: ['10.132.0.21:9323']
+```
+##### Telegraf от InfluxDB
+docker-compose
+```
+telegraf:
+  image: ${USERNAME1}/telegraf
+  volumes:
+   - '/var/run/docker.sock:/var/run/docker.sock'
+  networks:
+   - prometheus_net
+
+ influxdb:
+  image: influxdb
+  volumes:
+   - 'influxdb_data:/var/lib/influxdb'
+  networks:
+   - prometheus_net
+```
+job
+```
+- job_name: 'telegraf'
+  static_configs:
+    - targets: ['telegraf:9126']
+```
+##### импорт источников и дашбордов в Grafana
+provisioning/dashboards/my_dashboards.yml
+provisioning/datasources/my_datasource.yml
+
+##### Сбор метрик со Stackdriver c помощью образа Docker
+```
+stackdriver-exporter:
+  image: andrewmbr/stackdriver
+  ports:
+   - 9255:9255
+  networks:
+   - prometheus_net
+  environment:
+   - GOOGLE_APPLICATION_CREDENTIALS=/opt/gcp-key/gcp-key.json
+   - STACKDRIVER_EXPORTER_GOOGLE_PROJECT_ID=docker-266911
+   - STACKDRIVER_EXPORTER_MONITORING_METRICS_TYPE_PREFIXES=compute.googleapis.com/instance/cpu,compute.googleapis.com/instance/disk
+```
+##### proxy trickster
+```
+trickster:
+ image: tricksterio/trickster
+ networks:
+  - prometheus_net
+ environment:
+  - TRK_ORIGIN=http://prometheus:9090
+  - TRK_ORIGIN_TYPE=prometheus
+  - TRK_PROXY_PORT=8000
+  - TRK_METRICS_PORT=8001
+ ports:
+   - '8000:8000'
+   - '8001:8001'
+```
+а в графане указываем порт 8000
+
+
 ### №20 Введение в мониторинг. Системы мониторинга.
+<details>
+  <summary>Введение в мониторинг. Системы мониторинга.</summary>
+
 Запуск prometheus
 ```
 docker run --rm -p 9090:9090 -d --name prometheus prom/prometheus:v2.1.0
 ```
-
-Targets (цели) - представляют собой системы или процессы, за которыми следит Prometheus  
-
-конфиг файл Prometheus
+Targets (цели) - представляют собой системы или процессы, за
+которыми следит Prometheus конфиг файл Prometheus
 ```
----
-global:
-  scrape_interval: '5s'
-
-scrape_configs:
+--- global:
+  scrape_interval: '5s' scrape_configs:
   - job_name: 'prometheus'
     static_configs:
       - targets:
         - 'localhost:9090'
-
   - job_name: 'ui'
     static_configs:
       - targets:
         - 'ui:9292'
-
   - job_name: 'comment'
     static_configs:
       - targets:
         - 'comment:9292'
-
   - job_name: 'node'
     static_configs:
      - targets:
        - 'node-exporter:9100'
-
   - job_name: 'mongodb'
     static_configs:
      - targets:
        - 'mongodb-exporter:9216'
-
   - job_name: 'cloudprober'
     scrape_interval: 10s
     static_configs:
      - targets:
        - 'cloudprober-exporter:9313'
 ```
-Создаем "свой" Prometheus
+       Создаем "свой" Prometheus
 ```
-FROM prom/prometheus:v2.1.0
-ADD prometheus.yml /etc/prometheus/
+FROM prom/prometheus:v2.1.0 ADD prometheus.yml /etc/prometheus/
 ```
 prometheus в docker-compose
 ```
-services:
-...
+services: ...
   prometheus:
     image: ${USERNAME}/prometheus
     ports:
@@ -65,15 +244,13 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention=1d'
-
-volumes:
-  prometheus_data:
-```  
-##### Сбор метрик хоста  
-###### Node exporter
-образ docker
+      - '--storage.tsdb.retention=1d' volumes:
+  prometheus_data: 
 ```
+##### Сбор метрик хоста
+###### Node exporter
+образ docker 
+``` 
 node-exporter:
  image: prom/node-exporter:v0.15.2
  user: root
@@ -84,19 +261,18 @@ node-exporter:
  command:
  - '--path.procfs=/host/proc'
  - '--path.sysfs=/host/sys'
- - '--collector.filesystem.ignored-mount-points="^/(sys|proc|dev|host|etc)($$|/)"'
-```  
-в конфиг самого prometheus
-```
-scrape_configs:
-...
+ - '--collector.filesystem.ignored-mount-points="^/(sys|proc|dev|host|etc)($$|/)"' 
+ ```
+ в конфиг самого prometheus 
+ ```
+ scrape_configs: ...
  - job_name: 'node'
  static_configs:
  - targets:
- - 'node-exporter:9100'
-```  
+ - 'node-exporter:9100' 
+ ```
 ##### mongodb_exporter
-в конфиг docker-compose
+в конфиг docker-compose 
 ```
 mongodb-exporter:
     image: bitnami/mongodb-exporter:${MONGO_EXP_VER}
@@ -105,24 +281,19 @@ mongodb-exporter:
       - back_net
     environment:
       MONGODB_URI: "mongodb://post_db:27017"
-```  
-в конфиг самого prometheus  
-```
+``` 
+в конфиг самого prometheus 
+``` 
 - job_name: 'mongodb'
   static_configs:
    - targets:
      - 'mongodb-exporter:9216'
-```  
-
+```
 ##### cloudprober
 ###### Dockerfile
 ```
-FROM cloudprober/cloudprober
-
-COPY cloudprober.cfg /etc/cloudprober.cfg
-
-ENTRYPOINT ["/cloudprober", "--logtostderr"]
-```    
+FROM cloudprober/cloudprober COPY cloudprober.cfg /etc/cloudprober.cfg ENTRYPOINT ["/cloudprober", "--logtostderr"]
+```
 ###### /etc/cloudprober.cfg конфиг в образе
 ```
 probe {
@@ -131,10 +302,9 @@ probe {
   targets {
     host_names: "www.google.com"
   }
-  interval_msec: 5000  # 5s
-  timeout_msec: 1000   # 1s
+  interval_msec: 5000 # 5s
+  timeout_msec: 1000 # 1s
 }
-
 probe {
     name: "ui_page"
     type: HTTP
@@ -145,9 +315,8 @@ probe {
       protocol: HTTP
       port: 9292
     }
-    interval_msec: 5000    # Probe every 5s
+    interval_msec: 5000 # Probe every 5s
     }
-
 probe {
     name: "comment"
     type: HTTP
@@ -158,9 +327,9 @@ probe {
       protocol: HTTP
       port: 9292
     }
-    interval_msec: 5000    # Probe every 5s
+    interval_msec: 5000 # Probe every 5s
     }
-```  
+```
 ###### docker-compose
 ```
 cloudprober-exporter:
@@ -169,7 +338,7 @@ cloudprober-exporter:
     - prometheus_net
     - back_net
     - front_net
-```  
+```
 ###### prometheus.yml
 ```
 cloudprober-exporter:
@@ -178,53 +347,31 @@ cloudprober-exporter:
     - prometheus_net
     - back_net
     - front_net
-```  
+```
 ##### Makefile
 ```
-.DEFAULT_GOAL := help
-
-REGISTRY = andrewmbr
-
-help:
-        echo Build docker images and pushing them to hub. Example: make 'docker-all'
-
-docker-all: docker-ui docker-comment docker-post docker-prometheus docker-cloudprober docker-all-push
-
-docker-ui:
-        cd ../src/ui && docker build -t ${REGISTRY}/ui .
-
-docker-comment:
-        cd ../src/comment && docker build -t ${REGISTRY}/comment .
-
-docker-post:
-        cd ../src/post-py && docker build -t ${REGISTRY}/post .
-
-docker-cloudprober:
-        cd ../monitoring/cloudprober && docker build -t ${REGISTRY}/cloudprober .
-
-docker-mongodb-exporter:
-        cd ../monitoring/mongodb-exporter && docker build -t ${REGISTRY}/mongodb-exporter .
-
-docker-prometheus:
-        cd ../monitoring/prometheus && docker build -t ${REGISTRY}/prometheus .
-
-docker-all-push: docker-ui-push docker-comment-push docker-post-push docker-cloudprober-push docker-prometheus-push
-
-docker-ui-push:
-        docker push andrewmbr/ui:latest
-
-docker-comment-push:
-        docker push andrewmbr/comment:latest
-
-docker-post-push:
+.DEFAULT_GOAL := help REGISTRY = andrewmbr help:
+        echo Build docker images and pushing them to hub. Example: make 'docker-all' docker-all: docker-ui docker-comment docker-post docker-prometheus
+docker-cloudprober docker-all-push docker-ui:
+        cd ../src/ui && docker build -t ${REGISTRY}/ui . docker-comment:
+        cd ../src/comment && docker build -t ${REGISTRY}/comment . docker-post:
+        cd ../src/post-py && docker build -t ${REGISTRY}/post . docker-cloudprober:
+        cd ../monitoring/cloudprober && docker build -t ${REGISTRY}/cloudprober . docker-mongodb-exporter:
+        cd ../monitoring/mongodb-exporter && docker build -t ${REGISTRY}/mongodb-exporter . docker-prometheus:
+        cd ../monitoring/prometheus && docker build -t ${REGISTRY}/prometheus . docker-all-push: docker-ui-push docker-comment-push docker-post-push
+docker-cloudprober-push docker-prometheus-push docker-ui-push:
+        docker push andrewmbr/ui:latest docker-comment-push:
+        docker push andrewmbr/comment:latest docker-post-push:
         docker push andrewmbr/post:latest
-
 docker-cloudprober-push:
         docker push andrewmbr/cloudprober:latest
 
 docker-prometheus-push:
         docker push andrewmbr/ui:latest
-```  
+```
+
+</details>
+
 ### №19
 <details>
   <summary>Gitlab CI</summary>
@@ -249,13 +396,14 @@ web:
     - '/srv/gitlab/data:/var/opt/gitlab'
 ```
 Регистация первого пользователя, создание проекта
-добавление еще одного удаленного репо и push в него  
+добавление еще одного удаленного репо и push в него
 `git remote add gitlab http://<your-vm-ip>/homework/example.git`
 `git push gitlab gitlab-ci-1`
 
-создание файла .gitlab-ci.yml  
+создание файла .gitlab-ci.yml
 создание runner
-```docker run -d --name gitlab-runner --restart always \
+```
+docker run -d --name gitlab-runner --restart always \
 -v /srv/gitlab-runner/config:/etc/gitlab-runner \
 -v /var/run/docker.sock:/var/run/docker.sock \
 gitlab/gitlab-runner:latest
@@ -269,7 +417,8 @@ gitlab/gitlab-runner:latest
 Регулярное выражение слева означает, что должен стоять
 semver тэг в git, например, 2.4.10
 
-```only:
+```
+only:
  - /^\d+\.\d+\.\d+/
 ```
 ```
