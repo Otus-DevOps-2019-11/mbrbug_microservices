@@ -2,7 +2,7 @@ FROM alpine:3.7 AS builder
 
 RUN apk add --update --no-cache ruby libressl \
     && apk add --no-cache --virtual .build-dependencies \
-       build-base \
+       build-base gcc musl-dev \
        ruby-dev \
        libressl-dev \
     && gem install --no-rdoc --no-ri bundler

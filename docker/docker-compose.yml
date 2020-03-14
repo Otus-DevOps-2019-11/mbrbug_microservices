@@ -12,6 +12,7 @@ services:
           - comment_db
 
   ui:
+#    image: ${USER_NAME}/ui:1.0
     image: ${USER_NAME}/ui:${UI_VER}
     ports:
       - ${PORT}:${PORT}/tcp
