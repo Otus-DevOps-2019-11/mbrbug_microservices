@@ -1,11 +1,10 @@
-FROM python:3.6-alpine
+FROM python:3.6.0-alpine
 
 WORKDIR /app
 ADD . /app
 
-RUN apk --no-cache --update add gcc musl-dev build-base && \
-    pip install -r /app/requirements.txt && \
-    apk del build-base
+RUN apk update && apk add gcc musl-dev
+RUN pip install -r /app/requirements.txt
 
 ENV POST_DATABASE_HOST post_db
 ENV POST_DATABASE posts

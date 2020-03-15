@@ -1,6 +1,7 @@
 source 'https://rubygems.org'
 
 gem 'sinatra', '~> 2.0.2'
+gem 'bson'
 gem 'bson_ext'
 gem 'mongo'
 gem 'puma'

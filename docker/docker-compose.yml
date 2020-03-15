@@ -28,8 +28,8 @@ services:
       - prometheus_net
 
   comment:
-#    image: ${USER_NAME}/comment:${COMMENT_VER}
-    image: ${USER_NAME}/comment:1.0
+    image: ${USER_NAME}/comment:${COMMENT_VER}
+#    image: ${USER_NAME}/comment:1.0
     networks:
       - front_net
       - back_net
