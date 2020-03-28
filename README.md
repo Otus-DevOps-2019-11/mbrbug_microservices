@@ -1,7 +1,185 @@
 # mbrbug_microservices
 mbrbug microservices repository
 
+### №22 Логирование и распределенная трассировка
+ветка logging-1
+#### Elastic Stack
+EFK и ELK
+- ElasticSearch (TSDB и поисковый движок для хранения данных)
+- Logstash (для агрегации и трансформации данных)
+- Kibana (для визуализации)
+или вместо Logstash - fluentd
+
+##### docker/docker-compose-logging.yml
+```
+version: '3'
+services:
+
+fluentd:
+build: ./fluentd
+ports:
+- "24224:24224"
+- "24224:24224/udp"
+
+elasticsearch:
+image: elasticsearch
+expose:
+- 9200
+ports:
+- "9200:9200"
+
+kibana:
+image: kibana
+ports:
+- "5601:5601"
+```
+
+##### fluentd Dockerfile
+```
+FROM fluent/fluentd:v0.12
+RUN gem install fluent-plugin-elasticsearch --no-rdoc --no-ri --version 1.9.5
+RUN gem install fluent-plugin-grok-parser --no-rdoc --no-ri --version 1.0.0
+ADD fluent.conf /fluentd/etc
+```
+
+fluentd.conf
+```
+<source>
+  @type forward
+  port 24224
+  bind 0.0.0.0
+</source>
+
+<filter service.post>
+  @type parser
+  format json
+  key_name log
+</filter>
+
+<filter service.ui>
+  @type parser
+  key_name log
+  format grok
+  grok_pattern %{RUBY_LOGGER}
+</filter>
+
+<filter service.ui>
+  @type parser
+  format grok
+  grok_pattern service=%{WORD:service} \| event=%{WORD:event} \| request_id=%{GREEDYDATA:request_id} \| message='%{GREEDYDATA:message}'
+  key_name message
+  reserve_data true
+</filter>
+
+<filter service.ui>
+  @type parser
+  format grok
+  grok_pattern service=%{WORD:service} \| event=%{WORD:event} \| path=%{URIPATH:path} \| request_id=%{GREEDYDATA:request_id} \| remote_addr=%{IPORHOST:remote_add$
+  key_name message
+  reserve_data false
+</filter>
+
+<match *.**>
+  @type copy
+  <store>
+    @type elasticsearch
+    host elasticsearch
+    port 9200
+    logstash_format true
+    logstash_prefix fluentd
+    logstash_dateformat %Y%m%d
+    include_tag_key true
+    type_name access_log
+    tag_key @log_name
+    flush_interval 1s
+  </store>
+  <store>
+    @type stdout
+  </store>
+</match>
+```
+
+##### Структурированные логи
+docker драйвер fluentd
+```
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: localhost:24224
+        tag: service.ui
+
+```
+
+#### Kibana
+
+индекс fluentd
+`fluentd-*`
+##### фильтры Kibana
+```
+<filter service.post>
+@type parser
+format json
+key_name log
+</filter>
+```
+```
+<match *.**>
+  @type copy
+  <store>
+    @type elasticsearch
+    host elasticsearch
+    port 9200
+    logstash_format true
+    logstash_prefix fluentd
+    logstash_dateformat %Y%m%d
+    include_tag_key true
+    type_name access_log
+    tag_key @log_name
+    flush_interval 1s
+  </store>
+  <store>
+    @type stdout
+  </store>
+</match>
+```
+
+##### Неструктурированные логи
+###### Парсинг
+```
+<filter service.post>
+@type parser
+format json
+key_name log
+</filter>
+<filter service.ui>
+@type parser
+format /\[(?<time>[^\]]*)\] (?<level>\S+) (?<user>\S+)[\W]*service=(?<service>\S+)[\W]*event=(?<event>\S+)[\W]*
+(?:path=(?<path>\S+)[\W]*)?request_id=(?<request_id>\S+)[\W]*(?:remote_addr=(?<remote_addr>\S+)[\W]*)?(?:method=
+(?<method>\S+)[\W]*)?(?:response_status=(?<response_status>\S+)[\W]*)?(?:message='(?<message>[^\']*)[\W]*)?/
+key_name log
+</filter>
+```
+
+##### Распределенный трейсинг
+```
+services:
+zipkin:
+image: openzipkin/zipkin
+ports:
+- "9411:9411"
+networks:
+- front_net
+- back_net
+networks:
+back_net:
+front_net:
+```
+
+
 ### №21 Мониторинг приложения и инфраструктуры
+
+<details>
+  <summary>Введение в мониторинг. Системы мониторинга.</summary>
 
 Разворачиваем через docker-machine виртуалку
 
@@ -187,7 +365,7 @@ trickster:
    - '8001:8001'
 ```
 а в графане указываем порт 8000
-
+</details>
 
 ### №20 Введение в мониторинг. Системы мониторинга.
 <details>
@@ -245,12 +423,12 @@ services: ...
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
       - '--storage.tsdb.retention=1d' volumes:
-  prometheus_data: 
+  prometheus_data:
 ```
 ##### Сбор метрик хоста
 ###### Node exporter
-образ docker 
-``` 
+образ docker
+```
 node-exporter:
  image: prom/node-exporter:v0.15.2
  user: root
@@ -261,18 +439,18 @@ node-exporter:
  command:
  - '--path.procfs=/host/proc'
  - '--path.sysfs=/host/sys'
- - '--collector.filesystem.ignored-mount-points="^/(sys|proc|dev|host|etc)($$|/)"' 
+ - '--collector.filesystem.ignored-mount-points="^/(sys|proc|dev|host|etc)($$|/)"'
  ```
- в конфиг самого prometheus 
+ в конфиг самого prometheus
  ```
  scrape_configs: ...
  - job_name: 'node'
  static_configs:
  - targets:
- - 'node-exporter:9100' 
+ - 'node-exporter:9100'
  ```
 ##### mongodb_exporter
-в конфиг docker-compose 
+в конфиг docker-compose
 ```
 mongodb-exporter:
     image: bitnami/mongodb-exporter:${MONGO_EXP_VER}
@@ -281,9 +459,9 @@ mongodb-exporter:
       - back_net
     environment:
       MONGODB_URI: "mongodb://post_db:27017"
-``` 
-в конфиг самого prometheus 
-``` 
+```
+в конфиг самого prometheus
+```
 - job_name: 'mongodb'
   static_configs:
    - targets:
