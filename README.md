@@ -1,7 +1,7 @@
 # mbrbug_microservices
 mbrbug microservices repository
 
-### №22 Логирование и распределенная трассировка
+### №23 Логирование и распределенная трассировка
 ветка logging-1
 #### Elastic Stack
 EFK и ELK
