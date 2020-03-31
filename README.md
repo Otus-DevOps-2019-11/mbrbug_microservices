@@ -1,7 +1,40 @@
 # mbrbug_microservices
 mbrbug microservices repository
 
+### #25 Введение в Kubernetes
+
+##### пример Deployment манифест
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+name: post-deployment
+spec:
+replicas: 1
+# Указатель на то, какие поды нужно поддерживать в нужном количестве
+selector:
+matchLabels:
+app: post
+template:
+metadata:
+name: post-pod
+labels:
+app: post
+spec:
+containers:
+- image: andrewmbr/post
+name: post
+```
+
+##### Kubernetes The Hard Way
+https://github.com/kelseyhightower/kubernetes-the-hard-way
+
+
 ### №23 Логирование и распределенная трассировка
+
+<details>
+  <summary>Логирование и распределенная трассировка</summary>
+
 ветка logging-1
 #### Elastic Stack
 EFK и ELK
@@ -174,7 +207,7 @@ networks:
 back_net:
 front_net:
 ```
-
+</details>
 
 ### №21 Мониторинг приложения и инфраструктуры
 
