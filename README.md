@@ -7,7 +7,7 @@ Service и способ коммуникации
 - ClusterIP - дойти до сервиса можно только изнутри кластера
 - nodePort - клиент снаружи кластера приходит на опубликованный порт
 - LoadBalancer - клиент приходит на облачный (aws elb, Google gclb) ресурс балансировки
-- ExternalName - внешний ресурс по отношению к кластеру
+- ExternalName - внешний ресурс по отношению к кластеру.
 
 `kubectl get services -n dev`
 `kubectl scale deployment --replicas 0 -n kube-system kube-dnsautoscaler`
