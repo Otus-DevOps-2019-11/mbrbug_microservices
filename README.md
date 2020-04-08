@@ -1,7 +1,145 @@
 # mbrbug_microservices
 mbrbug microservices repository
 
+### №26
+Установка kubectl
+https://kubernetes.io/docs/tasks/tools/install-kubectl/
+
+Установка Minikube
+https://kubernetes.io/docs/tasks/tools/install-minikube/
+
+`minikube start`
+
+Информацию о контекстах kubectl сохраняет в файле
+`~/.kube/config`
+
+Обычно порядок конфигурирования kubectl следующий:
+Создать cluster:
+`kubectl config set-cluster … cluster_name`
+Создать данные пользователя (credentials)
+`kubectl config set-credentials … user_name`
+Создать контекст
+```
+kubectl config set-context context_name \
+--cluster=cluster_name \
+--user=user_name
+```
+Использовать контекст
+`kubectl config use-context context_name`
+
+Текущий контекст
+`kubectl config current-context`
+Список всех контекстов
+`kubectl config get-contexts`
+
+Запуск в Minikube
+`kubectl apply -f ui-deployment.yml`
+`kubectl get deployment`
+`kubectl get pods`
+
+```
+kubectl get pods --selector component=ui
+kubectl port-forward <pod-name> 8080:9292
+```
+
+###### Монтирование стандартного Volume для хранения данных вне контейнера
+```
+apiVersion: apps/v1beta2
+kind: Deployment
+…
+ containers:
+ - image: mongo:3.2
+ name: mongo
+ volumeMounts:
+ - name: mongo-persistent-storage
+ mountPath: /data/db
+ volumes:
+ - name: mongo-persistent-storage
+ emptyDir: {}
+```
+
+##### Services
+comment-service.yml
+```
+---
+apiVersion: v1
+kind: Service
+metadata:
+ name: comment
+ labels:
+ app: reddit
+ component: post
+spec:
+ ports:
+ - port: 9292
+ protocol: TCP
+ targetPort: 9292
+ selector:
+ app: reddit
+ component: comment
+```
+
+`kubectl describe service comment `
+`kubectl exec -ti <pod-name> nslookup comment`
+`kubectl port-forward <pod-name> 9292:9292`
+`kubectl logs post-56bbbf6795-7btnm`
+
+```
+---
+apiVersion: v1
+kind: Service
+metadata:
+ name: comment-db
+ labels:
+ app: reddit
+ component: mongo
+ comment-db: "true"
+spec:
+ ports:
+ - port: 27017
+ protocol: TCP
+ targetPort: 27017
+ selector:
+ app: reddit
+ component: mongo
+ comment-db: "true"
+```
+
+nodePort
+```
+spec:
+ type: NodePort
+ ports:
+- nodePort: 32092
+ port: 9292
+ protocol: TCP
+ targetPort: 9292
+ selector:
+
+```
+
+`minikube services list`
+` minikube addons list`
+
+##### Namespaces
+`kubectl get all -n kube-system --selector k8s-app=kubernetes-dashboard`
+`minikube service kubernetes-dashboard -n kube-system`
+
+dev-namespace.yml
+```
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+ name: dev
+```
+`kubectl apply -f dev-namespace.yml`
+`minikube service ui -n dev`
+
 ### #25 Введение в Kubernetes
+
+<details>
+  <summary>Введение в Kubernetes</summary>
 
 ##### пример Deployment манифест
 ```
@@ -26,9 +164,28 @@ containers:
 name: post
 ```
 
+```
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+ name: comment
+…
+ containers:
+ - image: chromko/comment
+ name: comment
+ env:
+ - name: COMMENT_DATABASE_HOST
+ value: comment-db
+```
+
+`gcloud container clusters get-credentials cluster-1 --zone us-central1-a --project docker-182408`
+`kubectl get nodes -o wide`
+`kubectl describe service ui -n dev | grep NodePort`
+
 ##### Kubernetes The Hard Way
 https://github.com/kelseyhightower/kubernetes-the-hard-way
 
+</details>
 
 ### №23 Логирование и распределенная трассировка
 
