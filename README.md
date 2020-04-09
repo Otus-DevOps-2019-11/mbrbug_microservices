@@ -1,7 +1,103 @@
 # mbrbug_microservices
 mbrbug microservices repository
 
+### №29 Kubernetes. Мониторинг и логирование
+Из Helm-чарта установим ingress-контроллер nginx
+`helm install stable/nginx-ingress --name nginx`
+`kubectl get svc`
+
+#### Prometheus в k8s
+`helm fetch —-untar stable/prometheus`
+`helm upgrade prom . -f custom_values.yml --install`
+Цели для мониторинга находим c помощью запросов к k8s API:
+prometheus.yml:
+```
+scrape_configs:
+- job_name: 'kubernetes-nodes'
+kubernetes_sd_configs:
+- role: node
+```
+Role объект, который нужно найти:
+ - node
+ - endpoints
+ - pod
+ - service
+ - ingress
+
+#### relabel_config
+```
+    relabel_configs:
+      - source_labels: [__meta_dns_name]
+        target_label: instance
+```
+```
+#Kubernetes nodes
+relabel_configs:
+- action: labelmap # преобразовать все k8s
+лейблы таргета в лейблы prometheus
+regex: __meta_kubernetes_node_label_(.+)
+- target_label: __address__ # Поменять лейбл для адреса
+сбора метрик
+replacement: kubernetes.default.svc:443
+- source_labels: [__meta_kubernetes_node_name] # Поменять лейбл для пути
+сбора метрик
+regex: (.+)
+target_label: __metrics_path__
+replacement: /api/v1/nodes/${1}/proxy/metrics/cadvisor
+```
+#### kubestate-metrics
+```
+kubeStateMetrics:
+## If false, kube-state-metrics will not be installed
+##
+enabled: true
+```
+relabel
+```
+# custom_values.yml
+- job_name: 'reddit-endpoints'
+kubernetes_sd_configs:
+- role: endpoints
+relabel_configs:
+- source_labels: [__meta_kubernetes_service_label_app]
+action: keep # Используем действие keep, чтобы оставить
+regex: reddit # только эндпоинты сервисов с метками
+# “app=reddit”
+```
+
+#### grafana
+```
+helm upgrade --install grafana stable/grafana --set "adminPassword=admin" \
+--set "service.type=NodePort" \
+--set "ingress.enabled=true" \
+--set "ingress.hosts={reddit-grafana}"
+```
+`kubectl get svc`
+prom-prometheus-server как source
+dashboard 315
+#### templating/Variables
+query - label_values(namespace)
+regex - /.+/
+request - {namespace=~"namespace"}
+
+#### logging
+`kubectl label node gke-cluster-1-big-pool-b4209075-tvn3 elastichost=true`
+- ElasticSearch (service, statefulset, pvc)
+- Fluentd (daemonset, configmap)
+- Kibana
+
+`kubectl apply -f ./efk`
+```
+helm upgrade --install kibana stable/kibana \
+--set "ingress.enabled=true" \
+--set "ingress.hosts={reddit-kibana}" \
+--set "env.ELASTICSEARCH_URL=http://elasticsearch-logging:9200" \
+--version 0.1.1
+```
+
 ### №28 CI/CD в Kubernetes
+<details>
+  <summary>CI/CD в Kubernetes</summary>
 #### Helm - пакетный менеджер для Kubernetes
 Серверная часть
 1) tiller.yml
@@ -144,7 +240,7 @@ $ git add .
 $ git commit -m “init”
 $ git push origin master
 ```
-
+</details>
 
 
 ### №27 Kubernetes. Networks ,Storages
