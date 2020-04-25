@@ -1,7 +1,175 @@
 # mbrbug_microservices
 mbrbug microservices repository
 
-### №26
+### №27 Kubernetes. Networks ,Storages
+
+Service и способ коммуникации
+- ClusterIP - дойти до сервиса можно только изнутри кластера
+- nodePort - клиент снаружи кластера приходит на опубликованный порт
+- LoadBalancer - клиент приходит на облачный (aws elb, Google gclb) ресурс балансировки
+- ExternalName - внешний ресурс по отношению к кластеру.
+
+`kubectl get services -n dev`
+`kubectl scale deployment --replicas 0 -n kube-system kube-dnsautoscaler`
+
+LoadBalancer
+```
+spec:
+ type: LoadBalancer
+ ports:
+ - port: 80
+ nodePort: 32092
+ protocol: TCP
+ targetPort: 9292
+ selector:
+ app: reddit
+ component: ui
+```
+
+Ingress
+```
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+ name: ui
+spec:
+ backend:
+ serviceName: ui
+ servicePort: 80
+```
+`kubectl get ingress -n dev`
+
+```
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+ name: ui
+spec:
+ rules:
+ - http:
+ paths:
+ - path: /*
+ backend:
+ serviceName: ui
+ servicePort: 9292
+```
+
+Secret
+`openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.crt -subj "/CN=35.190.66.90"`
+`kubectl create secret tls ui-ingress --key tls.key --cert tls.crt -n dev`
+
+```
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+ name: ui
+ annotations:
+ kubernetes.io/ingress.allow-http: "false"
+spec:
+ tls:
+ - secretName: ui-ingress
+ backend:
+ serviceName: ui
+ servicePort: 9292
+```
+
+`gcloud beta container clusters list`
+`gcloud beta container clusters update <cluster-name> \
+ --zone=us-central1-a --update-addons=NetworkPolicy=ENABLED
+`
+`gcloud beta container clusters update <cluster-name> \
+ --zone=us-central1-a --enable-network-policy`
+
+```
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+ name: deny-db-traffic
+ labels:
+ app: reddit
+spec:
+ podSelector:
+ matchLabels:
+ app: reddit
+ component: mongo
+ policyTypes:
+ - Ingress
+ ingress:
+ - from:
+ - podSelector:
+ matchLabels:
+ app: reddit
+ component: comment
+```
+
+Хранилище
+
+```
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+ name: mongo
+…
+ spec:
+ containers:
+ - image: mongo:3.2
+ name: mongo
+ volumeMounts:
+ - name: mongo-persistent-storage
+ mountPath: /data/db
+ volumes:
+ - name: mongo-persistent-storage
+ emptyDir: {}
+```
+Volume gcePersistentDisk
+PersistentVolume
+PersistentVolumeClaim
+
+
+` kubectl describe storageclass standard -n dev`
+
+```
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+ name: mongo
+…
+ spec:
+ containers:
+ - image: mongo:3.2
+ name: mongo
+ volumeMounts:
+ - name: mongo-persistent-storage
+ mountPath: /data/db
+ volumes:
+ - name: mongo-persistent-storage
+ persistentVolumeClaim:
+ claimName: mongo-pvc
+```
+
+StorageFast
+
+```
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1beta1
+metadata:
+ name: fast
+provisioner: kubernetes.io/gce-pd
+parameters:
+ type: pd-ssd
+```
+
+### №26 Основные модели безопасности и контроллеры в Kubernetes
+
+<details>
+  <summary>Основные модели безопасности и контроллеры в Kubernetes</summary>
 Установка kubectl
 https://kubernetes.io/docs/tasks/tools/install-kubectl/
 
@@ -135,6 +303,7 @@ metadata:
 ```
 `kubectl apply -f dev-namespace.yml`
 `minikube service ui -n dev`
+</details>
 
 ### #25 Введение в Kubernetes
 
@@ -186,6 +355,7 @@ metadata:
 https://github.com/kelseyhightower/kubernetes-the-hard-way
 
 </details>
+
 
 ### №23 Логирование и распределенная трассировка
 
@@ -740,7 +910,7 @@ docker-prometheus-push:
 
 </details>
 
-### №19
+### №19 Gitlab CI
 <details>
   <summary>Gitlab CI</summary>
 
