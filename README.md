@@ -1,7 +1,155 @@
 # mbrbug_microservices
 mbrbug microservices repository
 
+### №28 CI/CD в Kubernetes
+#### Helm - пакетный менеджер для Kubernetes
+Серверная часть
+1) tiller.yml
+```
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tiller
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: tiller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: tiller
+    namespace: kube-system
+```
+2) `helm init --service-account tiller`
+
+проверка
+`kubectl get pods -n kube-system --selector app=helm`
+
+#### Chart - это пакет в Helm
+Chart.yaml
+```
+name: ui
+version: 1.0.0
+description: OTUS reddit application UI
+maintainers:
+- name: Someone
+email: my@mail.com
+appVersion: 1.0
+```
+установка Chart
+`helm install --name test-ui-1 ui/`
+
+#### Шаблонизация Chart
+```
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-{{ .Chart.Name }}
+  labels:
+    app: reddit
+    component: ui
+    release: {{ .Release.Name }}
+spec:
+  type: NodePort
+  ports:
+  - port: {{ .Values.service.externalPort }}
+    protocol: TCP
+    targetPort: 9292
+  selector:
+    app: reddit
+    component: ui
+    release: {{ .Release.Name }}
+```
+name: {{ .Release.Name }}-{{ .Chart.Name }}
+Здесь мы используем встроенные переменные
+.Release - группа переменных с информацией о релизе
+(конкретном запуске Chart’а в k8s)
+.Chart - группа переменных с информацией о Chart’е (содержимое
+файла Chart.yaml)
+Также еще есть группы переменных:
+.Template - информация о текущем шаблоне ( .Name и .BasePath)
+.Capabilities - информация о Kubernetes (версия, версии API)
+.Files.Get - получить содержимое файла
+
+#### Переменные
+```
+service:
+internalPort: 9292
+externalPort: 9292
+image:
+repository: chromko/ui
+tag: latest
+```
+`"{{ .Values.image.repository }}:{{ .Values.image.tag }}`
+
+
+##### helpers
+```
+{{- define "comment.fullname" -}}
+{{- printf "%s-%s" .Release.Name .Chart.Name }}
+{{- end -}}
+```
+которая в результате выдаст то же, что и:
+```
+{{ .Release.Name }}-{{ .Chart.Name }}
+```
+вставлять
+`{{ template "comment.fullname" . }}`
+
+#### Управление зависимостями
+requirements.yaml
+```
+dependencies:
+- name: ui
+version: "1.0.0"
+repository: "file://../ui"
+- name: post
+version: "1.0.0"
+repository: file://../post
+- name: comment
+version: “1.0.0"
+repository: file://../comment
+```
+`helm dep update`
+
+#### Chart repo
+`helm search mongo`
+
+#### helm2 tiller plugin
+```
+helm init --client-only
+helm plugin install https://github.com/rimusz/helmtiller
+helm tiller run -- helm upgrade --install --wait --namespace=reddit-ns reddit reddit/
+```
+
+#### GitLab + Kubernetes
+Gitlab Helm Chart
+`helm repo add gitlab https://charts.gitlab.io`
+скачать локально
+`helm fetch gitlab/gitlab-omnibus --version 0.1.37 --untar`
+установка
+`helm install --name gitlab . -f values.yaml`
+
+```
+$ git init
+$ git remote add origin http://gitlab-gitlab/chromko/ui.git
+$ git add .
+$ git commit -m “init”
+$ git push origin master
+```
+
+
+
 ### №27 Kubernetes. Networks ,Storages
+<details>
+  <summary>Kubernetes. Networks ,Storages</summary>
 
 Service и способ коммуникации
 - ClusterIP - дойти до сервиса можно только изнутри кластера
@@ -165,6 +313,7 @@ provisioner: kubernetes.io/gce-pd
 parameters:
  type: pd-ssd
 ```
+</details>
 
 ### №26 Основные модели безопасности и контроллеры в Kubernetes
 

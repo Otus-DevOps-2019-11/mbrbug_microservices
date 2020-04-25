@@ -1,0 +1,20 @@
+comment:
+  image:
+    repository: andrewmbr/comment
+    tag: logging
+  service:
+    externalPort: 9292
+
+post:
+  image:
+    repository: andrewmbr/post
+    tag: logging
+  service:
+    externalPort: 5000
+
+ui:
+  image:
+    repository: andrewmbr/ui
+    tag: logging
+  service:
+    externalPort: 9292
